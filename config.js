@@ -12,7 +12,7 @@ window.SITE_CONFIG = {
   forecaster_name: "florida_man_05",
 
   // One short line under the name (optional).
-  tagline: "My PLSC forecast",
+  tagline: "My 2026 U.S. Congressional Midterms forecast",
 
   // A plain-language description of YOUR model, in your own words. Each line in
   // quotes is one paragraph, followed by a comma. Two or three short paragraphs:
@@ -25,7 +25,12 @@ window.SITE_CONFIG = {
   //   "A fundamentals-only model (no polls). Each race's predicted Democratic share combines the district's partisan lean, incumbency, and a forecast of the national House vote from presidential approval, gas prices, income and the midterm penalty.",
   //   "Uncertainty combines one national error shared by every race with a separate error for each race. Seat totals come from 10,000 simulated elections.",
   method: [
-    "Method"
+    "I built two separate models for the House and Senate. Both are fit on data from 2012-2024.",
+    "The House Model: Uses pvi + nat_d + inc_d + n_other + inc_d:after_2016 + n_other*pvi as its predictors.",
+    "The Senate Model: Uses pvi + nat_d + inc_d + inc_d:after_2016 + spend_gap as its predictors.",
+    "pvi = Partisan Value Index; nat_d = the national environment number; inc_d = incumbency status of contest;",
+    "n_other = number of 3rd party candidates in the contest; after_2016 = indicator of being in 2018 and beyond;",
+    "spend_gap = log proportion of democratic spending and republican spending in contest."
   ],
 
   // Your data files. Leave these alone unless you renamed your files.
