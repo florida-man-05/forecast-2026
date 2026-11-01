@@ -9,7 +9,7 @@ window.SITE_CONFIG = {
   // The name shown at the top of your site. A nickname or made-up forecaster
   // name is fine and recommended. Do not put your real name, email, photo,
   // or anything else that identifies you on this site.
-  forecaster_name: "Forecaster: florida_man_05",
+  forecaster_name: "florida_man_05",
 
   // One short line under the name (optional).
   tagline: "My 2026 U.S. Congressional Midterms forecast",
