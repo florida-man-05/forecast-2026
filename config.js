@@ -28,9 +28,13 @@ window.SITE_CONFIG = {
     "I built two separate models for the House and Senate. Both are fit on data from 2012-2024.",
     "The House Model: Uses pvi + nat_d + inc_d + n_other + inc_d:after_2016 + n_other*pvi as its predictors.",
     "The Senate Model: Uses pvi + nat_d + inc_d + inc_d:after_2016 + spend_gap as its predictors.",
-    "pvi = Partisan Value Index; nat_d = the national environment number; inc_d = incumbency status of contest;",
-    "n_other = number of 3rd party candidates in the contest; after_2016 = indicator of being in 2018 and beyond;",
-    "spend_gap = log proportion of democratic spending and republican spending in contest."
+    "pvi = Partisan Value Index",
+    "nat_d = National environment number, predicted with midterm + approval",
+    "midterm = Indicator of midterm year; approval = presidential approval rating before election day",
+    "inc_d = Incumbency status for contest",
+    "n_other = number of 3rd party candidates in the contest",
+    "after_2016 = indicator of being in 2018 and beyond",
+    "spend_gap = log proportion of democratic and republican spending in contest"
   ],
 
   // Your data files. Leave these alone unless you renamed your files.
