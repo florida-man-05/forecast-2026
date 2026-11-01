@@ -51,8 +51,12 @@
     getCSV("data/races_2026.csv"),
     getCSV("data/senate_seats_not_up_2026.csv"),
     getCSV(fFile).catch(function () { return null; }),
-    sFile ? getCSV(sFile).catch(function () { return null; }) : Promise.resolve(null)
-  ]).then(function (res) { build(res[0], res[1], res[2], res[3]); })
+    sFile ? getCSV(sFile).catch(function () { return null; }) : Promise.resolve(null),
+    fetch("data/us_house_districts_2026_v2.geojson?v=2", { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("District boundaries not found");
+      return r.json();
+    }).catch(function () { return null; })
+  ]).then(function (res) { build(res[0], res[1], res[2], res[3], res[4]); })
     .catch(function (e) {
       showEmpty("<p><strong>The page could not load its data.</strong> The site loads its data from its GitHub Pages address; browsers block it when <code>index.html</code> is opened as a file.</p><p class='note'>" + esc(e) + "</p>");
     });
@@ -79,7 +83,7 @@
   function showEmpty(html) { $("empty").innerHTML = html; $("empty").hidden = false; }
 
   // ---------------------------------------------------------------- build
-  function build(races, notup, fc, sims) {
+  function build(races, notup, fc, sims, houseGeo) {
     if (!fc) {
       showEmpty("<h2>No forecast yet</h2><p>Upload your <code>" + esc(fFile) + "</code> to this repository (Add file &rarr; Upload files) and this page will fill in. It can take a minute or two for GitHub Pages to update.</p>" +
         "<p>To preview what the site will look like, add <a href='?demo=prelim'><code>?demo=prelim</code></a> or <a href='?demo=final'><code>?demo=final</code></a> to the address.</p>");
@@ -107,6 +111,7 @@
     topline(house, senate, demNotUp, useP, S);
     senateMap(senate, useP);
     houseGrid(house, useP);
+    houseMap(house, useP, houseGeo);
     legends(useP);
     distribution(S, useP);
     table(races, useP, useI);
@@ -244,6 +249,120 @@
     });
     $("senate-note").textContent = useP ? "Each state shows the Democratic side's chance of winning. Gray states have no Senate race in 2026."
       : "Each state shows the predicted margin. Gray states have no Senate race in 2026.";
+  }
+
+  // ---------------------------------------------------------------- geographic House district map (120th Congress)
+  function houseMap(house, useP, geo) {
+    var grid = $("house-grid");
+    if (!grid || !geo || !Array.isArray(geo.features)) return;
+    var box = document.createElement("div");
+    box.className = "house-map";
+    box.setAttribute("aria-label", "2026 U.S. House district forecast map");
+    // The original House section note describes the squares. Change it to
+    // describe the map, and move the square note to just above the grid.
+    var houseSection = grid.closest(".block");
+    var headerNote = houseSection && houseSection.querySelector(".block-head .note");
+    var squareNoteText = "One square per district, grouped by state. Hover or tap a square for details.";
+    var mapNoteText = "2026 House Districts Forecast (map). Hover or tap a district for forecast details. Fixed races are hatched.";
+    if (headerNote) {
+      headerNote.textContent = mapNoteText;
+    } else {
+      var mapIntro = document.createElement("p");
+      mapIntro.className = "note";
+      mapIntro.textContent = mapNoteText;
+      grid.parentNode.insertBefore(mapIntro, grid);
+    }
+    grid.parentNode.insertBefore(box, grid);
+    var squareNote = document.createElement("p");
+    squareNote.className = "note house-squares-note";
+    squareNote.textContent = squareNoteText;
+    grid.parentNode.insertBefore(squareNote, grid);
+
+    function draw() {
+      if (!window.d3) return;
+      var d3 = window.d3;
+      var byDistrict = {};
+      house.forEach(function (r) { byDistrict[r.state + "-" + Number(r.dist)] = r; });
+      // Normalize Census/GeoJSON polygon winding to D3 geographic conventions.
+      // Exterior rings must be clockwise; interior holes counterclockwise.
+      function signedArea(ring) {
+        var a = 0;
+        for (var k = 0; k < ring.length - 1; k++) {
+          a += ring[k][0] * ring[k + 1][1] - ring[k + 1][0] * ring[k][1];
+        }
+        return a;
+      }
+      function fixPolygon(poly) {
+        poly.forEach(function (ring, i) {
+          var shouldBePositive = i !== 0;
+          if ((signedArea(ring) > 0) !== shouldBePositive) ring.reverse();
+        });
+      }
+      geo.features.forEach(function (feature) {
+        var geometry = feature.geometry;
+        if (!geometry) return;
+        if (geometry.type === "Polygon") fixPolygon(geometry.coordinates);
+        if (geometry.type === "MultiPolygon") geometry.coordinates.forEach(fixPolygon);
+      });
+      var w = 980, h = 590;
+      var projection = d3.geoAlbersUsa().fitSize([w - 28, h - 28], geo);
+      // FitSize returns a geographic projection; shift it inward for padding.
+      var xy = projection.translate();
+      projection.translate([xy[0] + 14, xy[1] + 14]);
+      var path = d3.geoPath(projection);
+      var svgNS = "http://www.w3.org/2000/svg";
+      var svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", "2026 House district map colored by the same ratings as the district squares");
+      var defs = document.createElementNS(svgNS, "defs");
+      defs.innerHTML = '<pattern id="house-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" fill="rgba(255,255,255,.65)"/></pattern>';
+      svg.appendChild(defs);
+      var matched = 0;
+      geo.features.forEach(function (f) {
+        var pr = f.properties || {};
+        // Census codes at-large House districts as 00, while the course
+        // race file numbers these single-member states as district 1.
+        var districtNumber = Number(pr.district);
+        if (districtNumber === 0 && ["AK", "DE", "ND", "SD", "VT", "WY"].indexOf(pr.state) !== -1) {
+          districtNumber = 1;
+        }
+        var key = pr.state + "-" + districtNumber;
+        var r = byDistrict[key];
+        if (r) matched++;
+        var d = path(f);
+        if (!d) return;
+        var shape = document.createElementNS(svgNS, "path");
+        shape.setAttribute("d", d);
+        shape.setAttribute("class", "house-district " + (r && r.rating ? "r-" + r.rating.key : "unmatched"));
+        if (r) attachTip(shape, r, useP);
+        svg.appendChild(shape);
+        if (r && isFixed(r)) {
+          var hatch = document.createElementNS(svgNS, "path");
+          hatch.setAttribute("d", d);
+          hatch.setAttribute("class", "house-district-hatch");
+          svg.appendChild(hatch);
+        }
+      });
+      box.appendChild(svg);
+      if (matched !== 435) {
+        var warn = document.createElement("p");
+        warn.className = "note";
+        warn.textContent = "Map matched " + matched + " of 435 district boundaries to the forecast; check data alignment.";
+        box.appendChild(warn);
+      }
+    }
+    if (window.d3) { draw(); return; }
+    var script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js";
+    script.onload = draw;
+    script.onerror = function () {
+      var msg = document.createElement("p");
+      msg.className = "note";
+      msg.textContent = "The district map could not load the map library. The squares below still work.";
+      box.appendChild(msg);
+    };
+    document.head.appendChild(script);
   }
 
   // ---------------------------------------------------------------- house grid

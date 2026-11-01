@@ -177,3 +177,18 @@ tr:last-child td { border-bottom: 0; }
 .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
          text-transform: none; color: var(--ink-2); border: 1px solid var(--empty-line); background: var(--empty); vertical-align: 1px; }
 .dist-note code { white-space: nowrap; }
+
+/* 2026 geographic House district map */
+.house-map { margin: 0 0 22px; }
+.house-map > svg { display: block; width: 100%; height: auto; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; }
+.house-map .house-district { stroke: var(--bg); stroke-width: .65px; vector-effect: non-scaling-stroke; cursor: pointer; }
+.house-map .house-district:hover, .house-map .house-district:focus { stroke: var(--ink); stroke-width: 1.7px; outline: none; }
+.house-map .house-district-hatch { fill: url(#house-hatch); stroke: none; pointer-events: none; }
+.house-map .r-safe-d { fill: var(--safe-d); }
+.house-map .r-likely-d { fill: var(--likely-d); }
+.house-map .r-lean-d { fill: var(--lean-d); }
+.house-map .r-toss { fill: var(--toss); }
+.house-map .r-lean-r { fill: var(--lean-r); }
+.house-map .r-likely-r { fill: var(--likely-r); }
+.house-map .r-safe-r { fill: var(--safe-r); }
+.house-map .unmatched { fill: var(--empty); }
